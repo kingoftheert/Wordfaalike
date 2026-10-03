@@ -1,0 +1,927 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wordfall - Vocabulary Game</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:linear-gradient(135deg,#111827,#1e3a8a);
+  color:#fff;
+  min-height:100vh;
+}
+
+button,input,textarea,select{
+  font:inherit;
+}
+
+.screen{
+  display:none;
+  min-height:100vh;
+}
+
+.screen.active{
+  display:flex;
+}
+
+/* SETUP */
+#setup{
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+
+.panel{
+  width:min(760px,100%);
+  background:rgba(255,255,255,.1);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:24px;
+  padding:30px;
+  box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+
+h1{
+  margin:0 0 8px;
+  font-size:44px;
+  text-align:center;
+}
+
+.subtitle{
+  text-align:center;
+  color:#cbd5e1;
+  margin-bottom:26px;
+}
+
+label{
+  display:block;
+  font-weight:bold;
+  margin:14px 0 8px;
+}
+
+textarea{
+  width:100%;
+  height:230px;
+  resize:vertical;
+  padding:16px;
+  border-radius:14px;
+  border:2px solid #475569;
+  background:#0f172a;
+  color:#fff;
+  outline:none;
+}
+
+textarea:focus{
+  border-color:#60a5fa;
+}
+
+.row{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.field{
+  flex:1;
+  min-width:180px;
+}
+
+select{
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  background:#0f172a;
+  color:#fff;
+  border:1px solid #475569;
+}
+
+.primary,
+.secondary{
+  border:0;
+  border-radius:12px;
+  padding:14px 20px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.primary{
+  background:#22c55e;
+  color:#052e16;
+  flex:1;
+  font-size:18px;
+}
+
+.secondary{
+  background:#334155;
+  color:#fff;
+}
+
+.primary:hover{
+  filter:brightness(1.08);
+}
+
+.help{
+  color:#cbd5e1;
+  font-size:14px;
+  line-height:1.5;
+}
+
+/* GAME */
+#game{
+  position:relative;
+  overflow:hidden;
+  flex-direction:column;
+}
+
+.topbar{
+  height:72px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 22px;
+  background:rgba(2,6,23,.65);
+  z-index:10;
+}
+
+.stat{
+  font-weight:bold;
+}
+
+#arena{
+  position:relative;
+  flex:1;
+  overflow:hidden;
+}
+
+#prompt{
+  position:absolute;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:5;
+  background:rgba(15,23,42,.85);
+  padding:12px 22px;
+  border-radius:999px;
+  text-align:center;
+  max-width:90%;
+}
+
+#question{
+  font-size:18px;
+}
+
+#timer{
+  font-size:14px;
+  color:#93c5fd;
+  margin-top:3px;
+}
+
+.word{
+  position:absolute;
+  top:-70px;
+  min-width:110px;
+  text-align:center;
+  padding:13px 17px;
+  border-radius:14px;
+  background:#f8fafc;
+  color:#0f172a;
+  font-weight:800;
+  font-size:20px;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(0,0,0,.3);
+  user-select:none;
+  transition:transform .12s,background .12s;
+}
+
+.word:hover{
+  transform:scale(1.08);
+}
+
+.word.correct{
+  background:#86efac;
+}
+
+.word.wrong{
+  background:#fca5a5;
+}
+
+#feedback{
+  position:absolute;
+  left:50%;
+  bottom:26px;
+  transform:translateX(-50%);
+  z-index:20;
+  font-size:28px;
+  font-weight:900;
+  text-shadow:0 3px 12px #000;
+  opacity:0;
+  pointer-events:none;
+}
+
+#feedback.show{
+  animation:feedback .8s ease;
+}
+
+@keyframes feedback{
+  0%{
+    opacity:0;
+    transform:translate(-50%,20px) scale(.8);
+  }
+
+  35%{
+    opacity:1;
+    transform:translate(-50%,0) scale(1.08);
+  }
+
+  100%{
+    opacity:0;
+    transform:translate(-50%,-10px) scale(1);
+  }
+}
+
+/* GAME OVER */
+#gameOver{
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+
+.result{
+  text-align:center;
+}
+
+.result h2{
+  font-size:40px;
+  margin:0 0 15px;
+}
+
+.bigscore{
+  font-size:64px;
+  font-weight:900;
+  color:#86efac;
+  margin:15px;
+}
+
+#mistakes{
+  color:#cbd5e1;
+  line-height:1.7;
+}
+
+@media(max-width:600px){
+  h1{
+    font-size:36px;
+  }
+
+  .panel{
+    padding:22px;
+  }
+
+  .topbar{
+    font-size:14px;
+    padding:0 12px;
+  }
+
+  #question{
+    font-size:16px;
+  }
+
+  .word{
+    font-size:17px;
+    min-width:95px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- SETUP SCREEN -->
+<section id="setup" class="screen active">
+
+  <div class="panel">
+
+    <h1>🌧️ Wordfall</h1>
+
+    <div class="subtitle">
+      English Vocabulary Listening Game
+    </div>
+
+    <label for="words">
+      Enter English Words
+    </label>
+
+    <textarea
+      id="words"
+      placeholder="One word per line&#10;&#10;apple&#10;banana&#10;elephant&#10;teacher&#10;computer"
+    ></textarea>
+
+    <p class="help">
+      Enter one English word per line.
+      The game will shuffle the words and create multiple choices.
+      Listen to the pronunciation and choose the word you hear.
+    </p>
+
+    <div class="row">
+
+      <div class="field">
+        <label for="speed">
+          Falling Speed
+        </label>
+
+        <select id="speed">
+          <option value="slow">Slow</option>
+          <option value="normal" selected>Normal</option>
+          <option value="fast">Fast</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="choices">
+          Number of Choices
+        </label>
+
+        <select id="choices">
+          <option value="3">3 Words</option>
+          <option value="4" selected>4 Words</option>
+          <option value="5">5 Words</option>
+        </select>
+      </div>
+
+    </div>
+
+    <br>
+
+    <button class="primary" onclick="startGame()">
+      🚀 Start Game
+    </button>
+
+  </div>
+
+</section>
+
+
+<!-- GAME SCREEN -->
+<section id="game" class="screen">
+
+  <div class="topbar">
+
+    <div class="stat">
+      ⭐ Score: <span id="score">0</span>
+    </div>
+
+    <div class="stat">
+      📖 <span id="progress">0 / 0</span>
+    </div>
+
+    <div class="stat">
+      ❤️ <span id="lives">3</span>
+    </div>
+
+  </div>
+
+  <div id="arena">
+
+    <div id="prompt">
+
+      <div id="question">
+        Listen carefully!
+      </div>
+
+      <div id="timer"></div>
+
+    </div>
+
+    <div id="feedback"></div>
+
+  </div>
+
+</section>
+
+
+<!-- GAME OVER SCREEN -->
+<section id="gameOver" class="screen">
+
+  <div class="panel result">
+
+    <h2>🎉 Game Complete!</h2>
+
+    <div>Your Score</div>
+
+    <div class="bigscore" id="finalScore">
+      0
+    </div>
+
+    <div id="finalStats"></div>
+
+    <div id="mistakes"></div>
+
+    <br>
+
+    <button class="primary" onclick="showSetup()">
+      🔄 Play Again
+    </button>
+
+  </div>
+
+</section>
+
+
+<script>
+
+let words = [];
+let queue = [];
+let current = null;
+
+let score = 0;
+let lives = 3;
+let completed = 0;
+
+let choicesCount = 4;
+let fallSpeed = 1.8;
+
+let animationId = null;
+let roundActive = false;
+
+let mistakes = [];
+
+
+/* SHUFFLE */
+function shuffle(a){
+
+  a = [...a];
+
+  for(let i = a.length - 1; i > 0; i--){
+
+    const j = Math.floor(Math.random() * (i + 1));
+
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+
+  return a;
+}
+
+
+/* SHORTCUT */
+const $ = id => document.getElementById(id);
+
+
+/* SHOW SCREEN */
+function showScreen(id){
+
+  document
+    .querySelectorAll('.screen')
+    .forEach(s => s.classList.remove('active'));
+
+  $(id).classList.add('active');
+}
+
+
+/* ENGLISH PRONUNCIATION */
+function speak(text){
+
+  if(!('speechSynthesis' in window)){
+    return;
+  }
+
+  speechSynthesis.cancel();
+
+  const u = new SpeechSynthesisUtterance(text);
+
+  /*
+    English pronunciation.
+    Change to en-GB if you prefer British English.
+  */
+  u.lang = 'en-US';
+
+  u.rate = 0.85;
+  u.pitch = 1;
+
+  speechSynthesis.speak(u);
+}
+
+
+/* START GAME */
+function startGame(){
+
+  const raw = $('words').value
+    .split(/\r?\n/)
+    .map(x => x.trim())
+    .filter(Boolean);
+
+  words = [...new Set(raw)];
+
+  if(words.length < 2){
+
+    alert(
+      'Please enter at least 2 English words, with one word on each line.'
+    );
+
+    return;
+  }
+
+  choicesCount = Math.min(
+    parseInt($('choices').value),
+    words.length
+  );
+
+  const speed = $('speed').value;
+
+  fallSpeed =
+    speed === 'slow'
+      ? 1.15
+      : speed === 'fast'
+        ? 2.8
+        : 1.8;
+
+  queue = shuffle(words);
+
+  score = 0;
+  lives = 3;
+  completed = 0;
+  mistakes = [];
+
+  $('score').textContent = score;
+  $('lives').textContent = lives;
+  $('progress').textContent =
+    `0 / ${words.length}`;
+
+  showScreen('game');
+
+  if('speechSynthesis' in window){
+    speechSynthesis.cancel();
+  }
+
+  nextRound();
+}
+
+
+/* NEXT ROUND */
+function nextRound(){
+
+  if(lives <= 0 || queue.length === 0){
+
+    endGame();
+
+    return;
+  }
+
+  document
+    .querySelectorAll('.word')
+    .forEach(x => x.remove());
+
+  current = queue.shift();
+
+  completed++;
+
+  $('progress').textContent =
+    `${completed} / ${words.length}`;
+
+  /*
+    IMPORTANT:
+    The answer is NOT displayed here.
+    The game only tells the player to listen.
+  */
+
+  $('question').textContent =
+    '🔊 Listen carefully!';
+
+  $('timer').textContent =
+    'Listen to the English word.';
+
+  const options = shuffle([
+    current,
+    ...shuffle(
+      words.filter(w => w !== current)
+    ).slice(0, choicesCount - 1)
+  ]);
+
+  const arena = $('arena');
+
+  const arenaW = arena.clientWidth;
+  const arenaH = arena.clientHeight;
+
+  const spacing =
+    arenaW / options.length;
+
+  options.forEach((word, i) => {
+
+    const el = document.createElement('div');
+
+    el.className = 'word';
+
+    el.textContent = word;
+
+    el.dataset.word = word;
+
+    const x = Math.max(
+      8,
+      Math.min(
+        arenaW - 130,
+        (i * spacing) +
+        Math.random() *
+        Math.max(1, spacing - 125)
+      )
+    );
+
+    el.style.left = x + 'px';
+    el.style.top = '-70px';
+
+    arena.appendChild(el);
+
+    el.addEventListener(
+      'click',
+      () => chooseWord(el, word)
+    );
+
+  });
+
+
+  /*
+    STEP 1:
+    Play the English word BEFORE the words start falling.
+  */
+
+  roundActive = false;
+
+  speak(current);
+
+
+  /*
+    Give the player time to hear the word.
+    Then start the falling animation.
+  */
+
+  setTimeout(() => {
+
+    if(
+      !document
+        .getElementById('game')
+        .classList
+        .contains('active')
+    ){
+      return;
+    }
+
+    $('question').textContent =
+      '🎯 Choose the word you heard';
+
+    $('timer').textContent = '';
+
+    roundActive = true;
+
+    let start = performance.now();
+
+
+    function fall(now){
+
+      if(!roundActive){
+
+        animationId = null;
+
+        return;
+      }
+
+      const dt =
+        (now - start) / 16.67;
+
+      start = now;
+
+      let hitBottom = false;
+
+      document
+        .querySelectorAll('.word')
+        .forEach(el => {
+
+          const top =
+            parseFloat(el.style.top) || -70;
+
+          const newTop =
+            top + fallSpeed * dt;
+
+          el.style.top =
+            newTop + 'px';
+
+          if(
+            newTop >
+            arenaH - 75
+          ){
+            hitBottom = true;
+          }
+
+        });
+
+
+      if(hitBottom){
+
+        /*
+          IMPORTANT:
+          Set roundActive to false AFTER calling loseLife().
+          Otherwise loseLife() would immediately return.
+        */
+
+        loseLife();
+
+        return;
+      }
+
+      animationId =
+        requestAnimationFrame(fall);
+    }
+
+
+    animationId =
+      requestAnimationFrame(fall);
+
+  }, 1200);
+}
+
+
+/* CHOOSE WORD */
+function chooseWord(el, word){
+
+  if(!roundActive){
+    return;
+  }
+
+
+  if(word === current){
+
+    roundActive = false;
+
+    el.classList.add('correct');
+
+    score += 10;
+
+    $('score').textContent =
+      score;
+
+    showFeedback(
+      '✓ Correct! +10',
+      'good'
+    );
+
+    setTimeout(
+      nextRound,
+      850
+    );
+
+  }else{
+
+    el.classList.add('wrong');
+
+    mistakes.push(current);
+
+    showFeedback(
+      '✗ Try again!',
+      'bad'
+    );
+
+    setTimeout(
+      () => el.classList.remove('wrong'),
+      350
+    );
+
+  }
+}
+
+
+/* LOSE LIFE */
+function loseLife(){
+
+  /*
+    Prevent duplicate calls.
+  */
+  if(!roundActive){
+    return;
+  }
+
+  roundActive = false;
+
+  lives--;
+
+  $('lives').textContent =
+    lives;
+
+  mistakes.push(current);
+
+  showFeedback(
+    '⏰ Time is up!',
+    'bad'
+  );
+
+
+  if(lives <= 0){
+
+    setTimeout(
+      endGame,
+      900
+    );
+
+  }else{
+
+    setTimeout(
+      nextRound,
+      800
+    );
+
+  }
+}
+
+
+/* FEEDBACK */
+function showFeedback(text, type){
+
+  const f = $('feedback');
+
+  f.textContent = text;
+
+  f.style.color =
+    type === 'good'
+      ? '#86efac'
+      : '#fca5a5';
+
+  f.classList.remove('show');
+
+  void f.offsetWidth;
+
+  f.classList.add('show');
+}
+
+
+/* END GAME */
+function endGame(){
+
+  roundActive = false;
+
+  if(animationId){
+    cancelAnimationFrame(animationId);
+  }
+
+  document
+    .querySelectorAll('.word')
+    .forEach(x => x.remove());
+
+  $('finalScore').textContent =
+    score;
+
+  const correct =
+    Math.max(
+      0,
+      Math.round(score / 10)
+    );
+
+  $('finalStats').innerHTML =
+    `Correct: <b>${correct}</b> / ${words.length}<br>
+     Lives remaining: <b>${lives}</b> ❤️`;
+
+
+  const uniqueMistakes =
+    [...new Set(mistakes)];
+
+
+  if(uniqueMistakes.length){
+
+    $('mistakes').innerHTML =
+      `<br>
+       <b>Words to review:</b>
+       <br>
+       ${uniqueMistakes.join(' • ')}`;
+
+  }else{
+
+    $('mistakes').innerHTML =
+      `<br>
+       🌟 Excellent! No words to review.`;
+
+  }
+
+
+  showScreen('gameOver');
+}
+
+
+/* RETURN TO SETUP */
+function showSetup(){
+
+  if(animationId){
+    cancelAnimationFrame(animationId);
+  }
+
+  if('speechSynthesis' in window){
+    speechSynthesis.cancel();
+  }
+
+  showScreen('setup');
+}
+
+</script>
+
+</body>
+</html>
+```
